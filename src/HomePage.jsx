@@ -50,12 +50,6 @@ function HomePage() {
     }
   }
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch()
-    }
-  }
-
   const selectLanguage = (code) => {
     setLanguage(code)
     setShowLanguageDropdown(false)
@@ -92,7 +86,6 @@ function HomePage() {
           type="text"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          onKeyPress={handleKeyPress}
           placeholder="Search books"
           autoFocus
         />
@@ -118,7 +111,6 @@ function HomePage() {
             onChange={(e) => setAuthor(e.target.value)}
             placeholder="Enter author name"
             className="filter-input"
-            onKeyPress={handleKeyPress}
           />
         </div>
 
@@ -157,7 +149,6 @@ function HomePage() {
             value={year}
             onChange={(e) => setYear(e.target.value)}
             className="filter-select"
-            onKeyPress={handleKeyPress}
           >
             <option value="">Any Year</option>
             {years.map((y) => (
