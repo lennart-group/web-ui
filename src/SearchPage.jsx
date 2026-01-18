@@ -21,17 +21,18 @@ const LANGUAGES = Object.entries(languages)
 function SearchPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   // Get initial values from URL params
   const query = searchParams.get('q') || '';
   const initialAuthor = searchParams.get('author') || '';
   const initialLanguage = searchParams.get('language') || '';
   const initialYear = searchParams.get('year') || '';
-  
+
   const [text, setText] = useState(query);
   const [results, setResults] = useState(null);
+  const [filtersApplied, setFiltersApplied] = useState(false);
   console.log(results);
-  
+
   const [loading, setLoading] = useState(true);
   const inputRef = useRef(null);
   const BASE_URL = "http://localhost:7000";
@@ -39,7 +40,12 @@ function SearchPage() {
   // Filter states - initialize from URL params
   const [author, setAuthor] = useState(initialAuthor);
   const [language, setLanguage] = useState(initialLanguage);
+  const selectedLang = LANGUAGES.find(l => l.name === language);
   const [year, setYear] = useState(initialYear);
+  const [currentFilteredAuthor, setCurrentFilteredAuthor] = useState(initialAuthor);
+  const [currentFilteredLanguage, setCurrentFilteredLanguage] = useState(initialLanguage);
+  const [currentFilteredSelectedLanguage, setCurrentFilteredSelectedLanguage] = useState(selectedLang?.name);
+  const [currentFilteredYear, setCurrentFilteredYear] = useState(initialYear);
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
 
   useEffect(() => {
@@ -61,7 +67,7 @@ function SearchPage() {
 
     try {
       let url = `${BASE_URL}/search?q=${encodeURIComponent(searchQuery)}`;
-      
+
       if (authorFilter) {
         url += `&author=${encodeURIComponent(authorFilter)}`;
       }
@@ -76,7 +82,7 @@ function SearchPage() {
       const response = await fetch(url);
       const data = await response.json();
       setResults(data);
-      
+
       // Update filter states with what was actually searched
       setAuthor(authorFilter);
       setLanguage(languageFilter);
@@ -110,7 +116,7 @@ function SearchPage() {
     if (query) {
       // Update URL with filters
       let url = `/search?q=${encodeURIComponent(query)}`;
-      
+
       if (author) {
         url += `&author=${encodeURIComponent(author)}`;
       }
@@ -120,16 +126,24 @@ function SearchPage() {
       if (year) {
         url += `&year=${encodeURIComponent(year)}`;
       }
-      
+      setCurrentFilteredAuthor(author);
+      setCurrentFilteredLanguage(language);
+      setCurrentFilteredSelectedLanguage(selectedLang?.name);
+      setCurrentFilteredYear(year);
+      setFiltersApplied(true);
       navigate(url);
     }
   };
 
   const handleClearFilters = () => {
     setAuthor('');
+    setCurrentFilteredAuthor('');
     setLanguage('');
+    setCurrentFilteredLanguage('');
     setYear('');
+    setCurrentFilteredYear('');
     // Navigate back to just the search term
+    setFiltersApplied(false);
     navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
@@ -146,20 +160,18 @@ function SearchPage() {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 150 }, (_, i) => currentYear - i);
 
-  const selectedLang = LANGUAGES.find(l => l.code === language);
-
   return (
     <div className="app">
       {/* Search Header */}
       <div className="search-header show">
-        <img 
+        <img
           src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png"
           alt="Google"
           className="logo-small"
           onClick={goHome}
           style={{ cursor: 'pointer' }}
         />
-        
+
         <div className="search-wrapper-small">
           <svg className="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"></circle>
@@ -195,7 +207,9 @@ function SearchPage() {
             <input
               type="text"
               value={author}
-              onChange={(e) => setAuthor(e.target.value)}
+              onChange={(e) => {
+                setAuthor(e.target.value);
+              }}
               placeholder="Enter author name"
               className="filter-input"
             />
@@ -204,7 +218,7 @@ function SearchPage() {
           <div className="filter-group language-filter-group">
             <label className="filter-label">Language:</label>
             <div className="language-dropdown-wrapper">
-              <button 
+              <button
                 className="filter-button language-select"
                 onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
                 type="button"
@@ -219,7 +233,7 @@ function SearchPage() {
                       key={lang.code}
                       type="button"
                       className={`language-option ${language === lang.code ? 'active' : ''}`}
-                      onClick={() => selectLanguage(lang.code)}
+                      onClick={() => selectLanguage(lang.name)}
                     >
                       <span className="lang-name">{lang.name}</span>
                       <span className="lang-code">({lang.code.toUpperCase()})</span>
@@ -234,7 +248,9 @@ function SearchPage() {
             <label className="filter-label">Year:</label>
             <select
               value={year}
-              onChange={(e) => setYear(e.target.value)}
+              onChange={(e) => {
+                setYear(e.target.value);
+              }}
               className="filter-select"
             >
               <option value="">Any Year</option>
@@ -293,21 +309,21 @@ function SearchPage() {
           <>
             <div className="results-info">
               About {results.count} results for "{results.query}"
-              {(author || language || year) && (
+              {(author || language || year) && filtersApplied && (
                 <div className="active-filters-display">
                   Filters applied:
-                  {author && <span className="filter-tag">Author: {author}</span>}
-                  {language && selectedLang && <span className="filter-tag">Language: {selectedLang.name}</span>}
-                  {year && <span className="filter-tag">Year: {year}</span>}
+                  {currentFilteredAuthor && <span className="filter-tag">Author: {currentFilteredAuthor}</span>}
+                  {currentFilteredLanguage && selectedLang && <span className="filter-tag">Language: {currentFilteredSelectedLanguage}</span>}
+                  {currentFilteredYear && <span className="filter-tag">Year: {currentFilteredYear}</span>}
                 </div>
               )}
             </div>
 
             <div className="results-list">
               {results.results.map((book) => (
-                <a 
-                  key={book.book_id} 
-                  href={`https://www.gutenberg.org/ebooks/${book.book_id}`}
+                <a
+                  key={book.book_id}
+                  href={`https://www.gutenberg.org/cache/epub/${book.book_id}/pg${book.book_id}.txt`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="result-item-link"
